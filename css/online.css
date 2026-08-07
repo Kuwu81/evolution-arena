@@ -70,7 +70,33 @@
 .lobby__player-name { font-weight: 600; font-size: 14px; }
 .lobby__player-tags { display: inline-flex; gap: 5px; flex-wrap: wrap; }
 
+/* Ein gesperrter Primärknopf behielt Verlauf und Leuchten und sah damit auf
+   dunklem Grund weiterhin tippbar aus – am Handy ein echter Stolperstein.
+   Deutlichkeit kommt jetzt aus der Farbe statt aus Transparenz, damit die
+   Beschriftung lesbar bleibt und der Knopf trotzdem inaktiv wirkt. */
+.btn--primary:disabled {
+  opacity: 1;
+  background: rgba(255, 255, 255, .04);
+  border-color: var(--line);
+  color: var(--tx-mute);
+  box-shadow: none;
+  text-shadow: none;
+}
+
 .lobby__foot { display: grid; gap: 10px; justify-items: stretch; }
+/* Grund für die Sperre – sichtbar abgesetzt, nicht als beiläufiger Hinweis. */
+.lobby__blocked {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid rgba(247, 184, 75, .32);
+  background: rgba(247, 184, 75, .1);
+  color: var(--warn);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
 .lobby__waiting {
   display: flex;
   align-items: center;
