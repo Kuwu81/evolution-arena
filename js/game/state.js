@@ -39,6 +39,8 @@
       name: config.name,
       color: config.color,
       controller: config.controller,
+      // Online: wem gehört dieses Team? null = KI oder lokale Partie.
+      playerId: config.playerId || null,
       letter: String.fromCharCode(65 + index),
       individuals: [],
       lineages: { A: { id: 'A', name: config.name } },
@@ -97,6 +99,7 @@
         name: cfg.name && cfg.name.trim() ? cfg.name.trim() : names[i],
         color: cfg.color,
         controller: cfg.controller,
+        playerId: cfg.playerId || null,
         startPop: setup.startPop
       }, rng, setup.pack));
     });

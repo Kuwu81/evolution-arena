@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Evolution Arena — Lockstep-Prüfung</title>
+<style>
+  body { font: 14px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; background: #080e14; color: #e6f0f6; padding: 28px; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  p.lead { color: #a3b8c7; margin: 0 0 22px; font-family: system-ui, sans-serif; }
+  .verdict { padding: 14px 16px; border-radius: 12px; margin-bottom: 18px; font-size: 15px; font-weight: 700; }
+  .ok { background: rgba(79,224,166,.14); color: #4fe0a6; border: 1px solid rgba(79,224,166,.4); }
+  .fail { background: rgba(255,106,90,.14); color: #ff6a5a; border: 1px solid rgba(255,106,90,.45); }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid rgba(150,195,220,.13); }
+  th { color: #6f8697; font-weight: 600; }
+  td.good { color: #4fe0a6; } td.bad { color: #ff6a5a; }
+  .note { color: #6f8697; font-size: 12px; margin-top: 20px; font-family: system-ui, sans-serif; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<h1>Lockstep-Prüfung</h1>
+<p class="lead">
+  Online rechnet jedes Gerät die Partie selbst; übertragen werden nur die Draft-Entscheidungen.
+  Das trägt nur, solange gleicher Seed + gleiche Entscheidungen überall denselben Zustand ergeben.
+  Diese Seite spielt jede Partie dreimal parallel durch und vergleicht die Rundenprüfsummen.
+</p>
+
+<div id="verdict" class="verdict">läuft …</div>
+<table><thead><tr><th>Seed</th><th>Pack</th><th>Ergebnis</th><th>Endpopulationen</th><th>Prüfsumme</th></tr></thead><tbody id="rows"></tbody></table>
+<p class="note" id="note"></p>
+
+<script src="../js/core/util.js"></script>
+<script src="../js/data/names.js"></script>
+<script src="../js/data/traits.js"></script>
+<script src="../js/data/events.js"></script>
+<script src="../js/game/genetics.js"></script>
+<script src="../js/game/state.js"></script>
+<script src="../js/game/phases.js"></script>
+<script src="../js/game/ai.js"></script>
+<script src="../js/net/config.js"></script>
+<script src="../js/net/protocol.js"></script>
+
+<script>
+(function () {
+  'use strict';
+  const EA = window.EA;
+  const ROUNDS = 10;
+
+  /**
+   * Ein Client. Bildet die Zufallsreihenfolge aus App.runDraft nach:
+   *   1. makeOffer für alle lebenden Teams in Teamreihenfolge
+   *   2. je Team: ai.decide (nur KI), dann applyDraft
+   * Menschliche Entscheidungen ziehen keinen Zufall und kommen von außen.
+   */
+  function playGame(seed, teamCfg, pack, decisions, humanPicker) {
+    const game = EA.state.createGame({ seed, pack, rounds: ROUNDS, startPop: 6, teams: teamCfg });
+    EA.state.refreshStats(game);
+    const hashes = [];
+
+    for (let r = 1; r <= ROUNDS; r++) {
+      game.round = r;
+
+      game.phase = 0;
+      EA.phases.phaseEvent(game);
+      EA.state.refreshStats(game);
+
+      game.phase = 1;
+      const active = game.teams.filter(t => t.individuals.length > 0);
+
+      const offers = new Map();
+      for (const team of active) offers.set(team, EA.phases.makeOffer(game, team));
+
+      const choices = new Map();
+      for (const team of active) {
+        if (team.controller !== 'human') continue;
+        const key = r + ':' + team.id;
+        let d = decisions.get(key);
+        if (!d) { d = humanPicker(offers.get(team)); decisions.set(key, d); }
+        const offer = offers.get(team);
+        choices.set(team.id, { trait: offer.find(x => x.id === d.traitId) || offer[0], mode: d.mode });
+      }
+
+      for (const team of active) {
+        let choice = choices.get(team.id);
+        if (!choice && team.controller === 'ai') {
+          const dec = EA.ai.decide(game, team, offers.get(team));
+          choice = { trait: dec.trait, mode: dec.mode };
+        }
+        if (!choice) continue;
+        EA.phases.applyDraft(game, team, choice.trait, choice.mode);
+        EA.state.refreshStats(game);
+      }
+
+      game.phase = 2; const feeding = EA.phases.phaseFeeding(game);
+      game.phase = 3; const selection = EA.phases.phaseSelection(game);
+      game.phase = 4; const repro = EA.phases.phaseReproduction(game);
+
+      EA.phases.endRound(game);
+      EA.phases.recordRound(game, feeding, selection, repro);
+      EA.state.refreshStats(game);
+      hashes.push(EA.protocol.stateHash(game));
+    }
+    return { game, hashes };
+  }
+
+  const C = EA.names.TEAM_COLORS;
+  const teamCfg = [
+    { name: 'Alpha', color: C[0].hex, controller: 'human', playerId: 'p1' },
+    { name: 'Beta',  color: C[1].hex, controller: 'human', playerId: 'p2' },
+    { name: 'Gamma', color: C[2].hex, controller: 'human', playerId: 'p3' },
+    { name: '',      color: C[3].hex, controller: 'ai',    playerId: null },
+    { name: '',      color: C[4].hex, controller: 'ai',    playerId: null }
+  ];
+
+  const rows = document.getElementById('rows');
+  let allOk = true;
+
+  for (let trial = 0; trial < 12; trial++) {
+    const seed = 100003 + trial * 7919;
+    const pack = trial % 2 ? 'advanced' : 'basis';
+    const decisions = new Map();
+
+    // Menschliche Wahl: bewusst NICHT aus game.rng – wie eine echte Person.
+    let n = trial * 31 + 7;
+    const picker = offer => {
+      n = (n * 1103515245 + 12345) & 0x7fffffff;
+      return { traitId: offer[n % offer.length].id, mode: (n >> 8) % 2 ? 'food' : 'mutation' };
+    };
+
+    const A = playGame(seed, teamCfg, pack, decisions, picker);
+    const nope = () => { throw new Error('Nur der erste Client darf selbst wählen'); };
+    const B = playGame(seed, teamCfg, pack, decisions, nope);
+    const D = playGame(seed, teamCfg, pack, decisions, nope);
+
+    const ok = A.hashes.join() === B.hashes.join() && A.hashes.join() === D.hashes.join();
+    if (!ok) allOk = false;
+    const diff = A.hashes.findIndex((h, i) => h !== B.hashes[i] || h !== D.hashes[i]);
+
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + seed + '</td><td>' + pack + '</td>' +
+      '<td class="' + (ok ? 'good' : 'bad') + '">' + (ok ? '✓ identisch' : '✗ ab Runde ' + (diff + 1)) + '</td>' +
+      '<td>' + A.game.teams.map(t => t.individuals.length).join(' / ') + '</td>' +
+      '<td>' + A.hashes[A.hashes.length - 1] + '</td>';
+    rows.appendChild(tr);
+  }
+
+  /* Gegenprobe: Eine einzige geänderte Entscheidung MUSS auffallen –
+     sonst würde der Test auch bei kaputter Prüfsumme grün melden. */
+  const dec1 = new Map();
+  let m = 5;
+  const pick = offer => {
+    m = (m * 1103515245 + 12345) & 0x7fffffff;
+    return { traitId: offer[m % offer.length].id, mode: (m >> 8) % 2 ? 'food' : 'mutation' };
+  };
+  const base = playGame(424242, teamCfg, 'advanced', dec1, pick);
+  const dec2 = new Map(dec1);
+  const key = '3:T1';
+  if (dec2.has(key)) {
+    const d = dec2.get(key);
+    dec2.set(key, { traitId: d.traitId, mode: d.mode === 'food' ? 'mutation' : 'food' });
+  }
+  const changed = playGame(424242, teamCfg, 'advanced', dec2, () => { throw new Error('nope'); });
+  const detects = base.hashes.join() !== changed.hashes.join();
+
+  const v = document.getElementById('verdict');
+  const pass = allOk && detects;
+  v.className = 'verdict ' + (pass ? 'ok' : 'fail');
+  v.textContent = pass
+    ? '✓ Lockstep hält — 12 Partien × 3 Clients × ' + ROUNDS + ' Runden, alle Prüfsummen gleich.'
+    : (!allOk ? '✗ Simulationen laufen auseinander — Onlinemodus ist nicht verlässlich.'
+              : '✗ Gegenprobe fehlgeschlagen: Die Prüfsumme erkennt Unterschiede nicht.');
+
+  document.getElementById('note').textContent = detects
+    ? 'Gegenprobe bestanden: Eine einzeln geänderte Draft-Entscheidung erzeugt abweichende Prüfsummen — der Test läuft also nicht trivial durch.'
+    : 'Gegenprobe fehlgeschlagen — stateHash erfasst zu wenig vom Zustand.';
+})();
+</script>
+</body>
+</html>

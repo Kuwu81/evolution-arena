@@ -1,0 +1,128 @@
+/* ============================================================
+   Evolution Arena — Onlinemodus
+   Lobby, Einladecode, Warten auf Mitspielende.
+   ============================================================ */
+
+/* Das UA-Stylesheet setzt [hidden] nur auf display:none — jede eigene
+   display-Regel (etwa .btn) gewinnt dagegen. Deshalb hier verbindlich. */
+[hidden] { display: none !important; }
+
+/* ---------- Lobby: Einstieg ---------- */
+.lobby__entry { display: grid; gap: 16px; }
+.lobby__split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.lobby__split .panel { min-height: 100%; }
+.lobby__split .btn { margin-top: auto; }
+
+.lobby__notice { max-width: 620px; margin: 0 auto; }
+.lobby__row { display: flex; flex-wrap: wrap; gap: 8px; }
+.lobby__err:empty { display: none; }
+.lobby__err { color: #ffb3aa; }
+
+/* Einladecode-Eingabe: großzügig, damit Abtippen leichtfällt. */
+.input--code {
+  font-family: var(--ff-num);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: .34em;
+  text-align: center;
+  text-transform: uppercase;
+  padding: 12px 10px;
+}
+
+/* ---------- Lobby: Raum ---------- */
+.lobby__room { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.lobby__col { display: grid; gap: 16px; align-content: start; }
+
+.lobby__code-val {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 4px 0 2px;
+}
+.lobby__code-val span {
+  font-family: var(--ff-num);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 12px 4px;
+  min-width: 42px;
+  text-align: center;
+  color: var(--acc);
+  border-radius: var(--r-sm);
+  border: 1px solid rgba(79, 224, 166, .3);
+  background: linear-gradient(180deg, rgba(79, 224, 166, .14), rgba(79, 224, 166, .04));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+.lobby__players { display: grid; gap: 8px; }
+.lobby__player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .028);
+}
+.lobby__player--ai { opacity: .72; }
+.lobby__player.is-off { opacity: .5; }
+.lobby__player-main { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.lobby__player-name { font-weight: 600; font-size: 14px; }
+.lobby__player-tags { display: inline-flex; gap: 5px; flex-wrap: wrap; }
+
+.lobby__foot { display: grid; gap: 10px; justify-items: stretch; }
+.lobby__waiting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 14px;
+  font-size: 13.5px;
+  color: var(--tx-dim);
+  border-radius: var(--r-md);
+  border: 1px dashed var(--line-strong);
+}
+
+.tagpill--warn { background: rgba(247, 184, 75, .16); color: var(--warn); }
+.tagpill--good { background: rgba(79, 224, 166, .16); color: var(--acc); }
+
+/* ---------- Warten auf die Mitspielenden ---------- */
+.wait-list { display: grid; gap: 8px; margin-bottom: 12px; }
+.wait-list__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .028);
+  transition: border-color var(--t-mid), background var(--t-mid);
+}
+.wait-list__row.is-done { border-color: rgba(79, 224, 166, .32); background: rgba(79, 224, 166, .07); }
+.wait-list__name { flex: 1; font-weight: 600; font-size: 14px; }
+.wait-list__pending { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--tx-mute); }
+
+.wait-take { display: grid; gap: 2px; text-align: left; }
+.wait-take__d { font-size: 11px; font-weight: 400; opacity: .7; }
+
+/* ---------- Spinner ---------- */
+.spinner {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid rgba(150, 195, 220, .22);
+  border-top-color: var(--acc);
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 2.4s; }
+}
+
+/* ---------- Schmale Displays ---------- */
+@media (max-width: 760px) {
+  .lobby__split,
+  .lobby__room { grid-template-columns: 1fr; }
+  .lobby__code-val span { font-size: 24px; min-width: 34px; padding: 10px 2px; }
+}

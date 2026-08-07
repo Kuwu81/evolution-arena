@@ -17,6 +17,9 @@
     auto: false,
     runToken: 0,
     advanceResolve: null,
+    net: null,            // aktiver Onlineraum, sonst null
+    pendingGate: null,    // Online-Gastgeber: Phase, die auf Freigabe wartet
+    catchUpTo: 0,         // Wiedereinstieg: bis zu dieser Runde im Schnelldurchlauf
     setup: {
       teamCount: 3,
       rounds: 10,
@@ -32,6 +35,7 @@
     boot() {
       EA.hud.mount();
       EA.endscreen.mount();
+      EA.lobby.mount();
       EA.arena.init($('#arena'), $('#arena-overlay'), $('#arena-wrap'));
 
       this.buildSetupTeams();
@@ -48,6 +52,13 @@
 
       this.clock.start();
       this.loop(performance.now());
+
+      // Einladelink: ?join=ABC234 führt direkt in die Lobby.
+      const join = new URLSearchParams(location.search).get('join');
+      if (join) {
+        const code = EA.protocol.normalizeCode(join);
+        if (EA.protocol.isValidCode(code)) EA.lobby.open(code);
+      }
     },
 
     /* ---------- Render-Schleife (nur Darstellung, keine Spiellogik) ---------- */
@@ -113,6 +124,7 @@
        ============================================================ */
     bindMenu() {
       $$('[data-action="goto-setup"]').forEach(b => b.addEventListener('click', () => this.show('setup')));
+      $$('[data-action="goto-lobby"]').forEach(b => b.addEventListener('click', () => EA.lobby.open()));
       $$('[data-action="back-to-menu"]').forEach(b => b.addEventListener('click', () => {
         this.abortGame();
         this.show('menu');
@@ -275,7 +287,7 @@
     startGame() {
       this.abortGame();
       const seedNum = parseInt(this.setup.seed, 10);
-      const game = EA.state.createGame({
+      this.launch(EA.state.createGame({
         seed: isNaN(seedNum) ? null : seedNum,
         pack: this.setup.pack,
         rounds: this.setup.rounds,
@@ -283,7 +295,50 @@
         teams: this.setup.teams.slice(0, this.setup.teamCount).map(t => ({
           name: t.name, color: t.color, controller: t.controller
         }))
-      });
+      }));
+    },
+
+    /**
+     * Onlinepartie: Jedes Gerät baut aus demselben Seed und derselben
+     * Aufstellung dieselbe Ausgangslage. Ab hier wird nur noch die
+     * Draft-Entscheidung übertragen – der Rest ergibt sich aus game.rng.
+     *
+     * upToRound > 0 heißt Wiedereinstieg: Der Verlauf liegt bereits vor
+     * und wird im Schnelldurchlauf nachgeholt.
+     */
+    startOnlineGame(room, payload, upToRound) {
+      this.abortGame({ keepRoom: true });
+      if (this.netUnsub) { this.netUnsub.forEach(f => f()); this.netUnsub = null; }
+      this.net = room;
+      this.catchUpTo = upToRound || 0;
+
+      this.netUnsub = [
+        room.on('desync', d => this.onDesync(d)),
+        room.on('roster', () => {
+          if (this.screen === 'game' && !room.hostOnline) {
+            EA.hud.toast('Der Gastgeber ist getrennt – die Partie wartet.', 'bad', 4000);
+          }
+        }),
+        room.on('closed', () => {
+          if (this.screen === 'game') EA.hud.toast('Verbindung zum Raum verloren.', 'bad', 5000);
+        })
+      ];
+
+      this.launch(EA.state.createGame({
+        seed: payload.seed,
+        pack: payload.pack,
+        rounds: payload.rounds,
+        startPop: payload.startPop,
+        teams: payload.teams
+      }));
+
+      const me = this.myTeam();
+      if (me) EA.hud.toast('Du spielst <b style="color:' + me.color + '">' + me.name + '</b>', 'good', 3200);
+      if (this.catchUpTo) EA.hud.toast('Wiedereinstieg – der bisherige Verlauf wird nachgeholt …', 'info', 3200);
+    },
+
+    /** Gemeinsamer Start für lokale und Onlinepartien. */
+    launch(game) {
       this.game = game;
       EA.state.refreshStats(game);
 
@@ -296,18 +351,52 @@
       this.auto = false;
       $('#btn-auto').classList.remove('is-on');
       $('#btn-auto').textContent = '▶ Auto';
+      // Online bestimmt der Gastgeber den Takt – bei Gästen wäre der Knopf wirkungslos.
+      const guest = !!(this.net && !this.net.isHost);
+      $('#btn-auto').hidden = guest;
+      $('[data-action="rematch"]').hidden = !!this.net;
 
       const token = ++this.runToken;
       this.runGame(token);
     },
 
-    abortGame() {
+    abortGame(opts) {
       this.runToken++;
       this.clock.paused = false;
+      this.clock.speed = 1;
       this.clock.flush();
+      this.pendingGate = null;
+      this.catchUpTo = 0;
       if (this.advanceResolve) { const r = this.advanceResolve; this.advanceResolve = null; r(); }
       EA.modal.closeAll();
       EA.audio.stopMusic();
+
+      if (!(opts && opts.keepRoom)) {
+        if (this.netUnsub) { this.netUnsub.forEach(f => f()); this.netUnsub = null; }
+        if (this.net) { EA.net.leave(); this.net = null; }
+      }
+    },
+
+    /** Das Team, das an diesem Gerät gespielt wird (online). */
+    myTeam() {
+      if (!this.net || !this.game) return null;
+      return this.game.teams.find(t => t.playerId === this.net.playerId) || null;
+    },
+
+    onDesync(d) {
+      EA.modal.open({
+        title: 'Partien laufen auseinander',
+        sub: 'Runde ' + d.round,
+        className: 'modal--slim',
+        body: el('div', {}, [
+          el('p', {},
+            'Zwei Geräte haben für dieselbe Runde unterschiedliche Zustände berechnet. ' +
+            'Das darf nicht passieren – ab hier zeigen die Bildschirme nicht mehr dasselbe Spiel.'),
+          el('p', { class: 'field__hint' },
+            'Am zuverlässigsten ist ein Neustart der Partie. Bitte den Seed notieren: ' +
+            (this.game ? this.game.seed : '–'))
+        ])
+      });
     },
 
     alive(token) { return token === this.runToken; },
@@ -315,6 +404,7 @@
     /** Wartet auf „Weiter“ – oder läuft im Auto-Modus selbstständig durch. */
     gate(label, token) {
       if (!this.alive(token)) return Promise.resolve();
+      if (this.net) return this.netGate(label, token);
       if (this.auto) {
         EA.hud.setAdvance(label, false);
         return this.clock.wait(520);
@@ -323,7 +413,41 @@
       return new Promise(resolve => { this.advanceResolve = resolve; });
     },
 
+    /**
+     * Online gibt der Gastgeber den Takt vor: Er schaltet die Phase frei,
+     * alle anderen warten auf dieselbe Freigabe. Nur so sehen alle Geräte
+     * dieselbe Runde – rechnen tut jedes für sich.
+     */
+    netGate(label, token) {
+      const room = this.net;
+      const round = this.game.round, phase = this.game.phase;
+      const waiting = room.awaitGate(round, phase);
+
+      if (room.isHost) {
+        if (this.auto) {
+          EA.hud.setAdvance(label, false);
+          this.clock.wait(520).then(() => { if (this.alive(token)) room.openGate(round, phase); });
+        } else {
+          this.pendingGate = { round, phase };
+          EA.hud.setAdvance(label, true);
+        }
+      } else {
+        EA.hud.setAdvance('⏳ Gastgeber …', false);
+      }
+
+      return waiting.then(() => { EA.hud.setAdvance('…', false); });
+    },
+
     tryAdvance() {
+      if (this.net) {
+        if (!this.net.isHost || !this.pendingGate) return;
+        const g = this.pendingGate;
+        this.pendingGate = null;
+        EA.hud.setAdvance('…', false);
+        EA.audio.play('phase');
+        this.net.openGate(g.round, g.phase);
+        return;
+      }
       if (this.advanceResolve) {
         const r = this.advanceResolve;
         this.advanceResolve = null;
@@ -349,6 +473,13 @@
       const C = this.clock;
       const hud = EA.hud;
       const arena = EA.arena;
+
+      // Wiedereinstieg: aufgezeichnete Runden im Zeitraffer nachholen.
+      if (this.catchUpTo) {
+        const done = game.round > this.catchUpTo;
+        C.speed = done ? 1 : 16;
+        if (done) { this.catchUpTo = 0; EA.hud.toast('Aufgeholt – ab hier live.', 'good', 2400); }
+      }
 
       hud.markPopulations();
       hud.renderRound();
@@ -385,17 +516,8 @@
       await this.gate('Draft starten ▸', token);
       if (!this.alive(token)) return;
 
-      const humanTeams = game.teams.filter(t => t.controller === 'human' && t.individuals.length > 0);
-      for (const team of game.teams) {
-        if (!this.alive(token)) return;
-        if (!team.individuals.length) continue;
-        await EA.draft.run(game, team, { handoff: humanTeams.length > 1, clock: C });
-        if (!this.alive(token)) return;
-        EA.state.refreshStats(game);
-        hud.renderTeams();
-        hud.renderGenepool();
-        hud.renderCombos();
-      }
+      await this.runDraft(token);
+      if (!this.alive(token)) return;
 
       /* ---------- Phase 2: Wasserloch ---------- */
       game.phase = 2;
@@ -459,7 +581,95 @@
       EA.state.refreshStats(game);
       arena.layout();
       hud.renderAll();
+
+      // Fingerabdruck der Runde austauschen: Weichen zwei Geräte ab, ist die
+      // Lockstep-Annahme verletzt und Weiterspielen hätte keinen Sinn mehr.
+      if (this.net) this.net.publishChecksum(game.round, EA.protocol.stateHash(game));
+
       await C.wait(600);
+    },
+
+    /* ============================================================
+       Phase 1 — Draft
+
+       Reihenfolge der Zufallsziehungen (identisch in JEDEM Modus, sonst
+       laufen online die Simulationen auseinander):
+         1. makeOffer für alle lebenden Teams in Teamreihenfolge
+         2. je Team in Teamreihenfolge: ai.decide (nur KI), dann applyDraft
+
+       Menschliche Entscheidungen ziehen keinen Zufall – sie dürfen
+       deshalb sequenziell (Hotseat) oder gleichzeitig (online) fallen.
+       ============================================================ */
+    async runDraft(token) {
+      const game = this.game;
+      const hud = EA.hud;
+      const active = game.teams.filter(t => t.individuals.length > 0);
+
+      // makeOffer hängt nicht vom Team ab – nur von game.rng. Vorziehen ist
+      // deshalb inhaltlich neutral und macht gleichzeitiges Draften möglich.
+      const offers = new Map();
+      for (const team of active) offers.set(team, EA.phases.makeOffer(game, team));
+
+      // Online: erst die eigene Wahl treffen, dann auf die anderen warten.
+      let choices = null;
+      if (this.net) {
+        choices = await this.collectNetChoices(active, offers, token);
+        if (!this.alive(token)) return;
+      }
+
+      const humanTeams = active.filter(t => t.controller === 'human');
+      const mine = this.myTeam();
+      for (const team of active) {
+        if (!this.alive(token)) return;
+        await EA.draft.run(game, team, offers.get(team), {
+          clock: this.clock,
+          handoff: !this.net && humanTeams.length > 1,
+          choice: choices ? choices.get(team.id) : null,
+          // Das eigene Team bekommt die Auflösung auch online zu sehen.
+          reveal: !!(this.net && team === mine && !this.catchUpTo),
+          brisk: !!this.net
+        });
+        if (!this.alive(token)) return;
+        EA.state.refreshStats(game);
+        hud.renderTeams();
+        hud.renderGenepool();
+        hud.renderCombos();
+      }
+    },
+
+    /**
+     * Sammelt die Draft-Entscheidungen aller menschlichen Teams über das Netz.
+     * Die eigene Wahl läuft über denselben Kanal zurück – dadurch nimmt jedes
+     * Gerät exakt denselben Weg durch applyDraft.
+     */
+    async collectNetChoices(active, offers, token) {
+      const game = this.game;
+      const room = this.net;
+      const humanTeams = active.filter(t => t.controller === 'human');
+      const mine = humanTeams.find(t => t.playerId === room.playerId);
+
+      // Beim Wiedereinstieg liegt die eigene Entscheidung schon im Verlauf.
+      if (mine && !room.hasDraft(game.round, mine.id)) {
+        const choice = await EA.draft.chooseCard(game, mine, offers.get(mine));
+        if (!this.alive(token)) return null;
+        room.publishDraft(game.round, mine.id, choice.trait.id, choice.mode);
+      }
+
+      const missing = humanTeams.filter(t => !room.hasDraft(game.round, t.id));
+      if (missing.length) await EA.draft.waitForOthers(room, game, humanTeams, offers);
+      if (!this.alive(token)) return null;
+
+      const map = new Map();
+      for (const team of humanTeams) {
+        const d = room.getDraft(game.round, team.id);
+        const offer = offers.get(team);
+        // Fremde Nachrichten nie ungeprüft übernehmen: eine unbekannte Karte
+        // oder ein unbekannter Modus würde die Simulation auseinanderlaufen lassen.
+        const trait = (d && offer.find(x => x.id === d.traitId)) || offer[0];
+        const mode = d && d.mode === 'food' ? 'food' : 'mutation';
+        map.set(team.id, { trait, mode, auto: !!(d && d.auto) });
+      }
+      return map;
     },
 
     async animateFeeding(feeding, token) {

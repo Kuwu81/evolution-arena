@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/online.css">
 <link rel="stylesheet" href="css/animations.css">
 <link rel="stylesheet" href="css/responsive.css">
 </head>
@@ -48,7 +49,10 @@
 
       <div class="menu__actions">
         <button class="btn btn--primary btn--xl" data-action="goto-setup">
-          <span class="btn__icon">▸</span> Spiel starten
+          <span class="btn__icon">▸</span> Am Gerät spielen
+        </button>
+        <button class="btn btn--xl" data-action="goto-lobby">
+          <span class="btn__icon">🌐</span> Online spielen
         </button>
         <div class="menu__row">
           <button class="btn btn--ghost" data-action="open-rules"><span class="btn__icon">📖</span> Regeln &amp; Biologie</button>
@@ -133,6 +137,17 @@
         <button class="btn btn--ghost" data-action="open-rules"><span class="btn__icon">📖</span> Regeln</button>
         <button class="btn btn--primary btn--xl" data-action="start-game">Arena betreten ▸</button>
       </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ ONLINELOBBY ═══════════════════════ -->
+  <section id="screen-lobby" class="screen" data-screen="lobby">
+    <div class="setup">
+      <header class="setup__head">
+        <button class="btn btn--icon" data-action="lobby-leave" title="Zurück">←</button>
+        <h2>Online spielen</h2>
+      </header>
+      <div id="lobby-body"></div>
     </div>
   </section>
 
@@ -285,6 +300,10 @@
 
 <noscript><p style="padding:2rem;text-align:center">Evolution Arena benötigt JavaScript.</p></noscript>
 
+<!-- Realtime-SDK für den Onlinemodus. Fehlt es (kein Netz, file://), bleibt
+     alles andere nutzbar – der Onlinemodus meldet das dann verständlich. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
+
 <script src="js/core/util.js"></script>
 <script src="js/core/audio.js"></script>
 <script src="js/data/names.js"></script>
@@ -295,11 +314,15 @@
 <script src="js/game/phases.js"></script>
 <script src="js/game/ai.js"></script>
 <script src="js/game/analysis.js"></script>
+<script src="js/net/config.js"></script>
+<script src="js/net/protocol.js"></script>
+<script src="js/net/room.js"></script>
 <script src="js/render/arena.js"></script>
 <script src="js/ui/charts.js"></script>
 <script src="js/ui/hud.js"></script>
 <script src="js/ui/draft.js"></script>
 <script src="js/ui/modals.js"></script>
+<script src="js/ui/lobby.js"></script>
 <script src="js/ui/endscreen.js"></script>
 <script src="js/app.js"></script>
 </body>
