@@ -1,0 +1,154 @@
+/* ============================================================
+   Evolution Arena — Screens & responsives Layout
+   ============================================================ */
+
+#app {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  min-height: 0;
+}
+.screen.is-active { display: flex; }
+.screen.is-entering { animation: screen-in .42s var(--e-out) both; }
+
+/* ───────────── Startmenü ───────────── */
+.menu {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(20px, 3.2vh, 40px);
+  padding: 32px 20px calc(32px + var(--safe-b));
+  overflow-y: auto;
+  text-align: center;
+}
+.menu__hero { display: grid; justify-items: center; gap: 10px; }
+.menu__emblem { width: clamp(64px, 9vh, 96px); color: var(--acc); filter: drop-shadow(0 0 22px rgba(79,224,166,.45)); perspective: 340px; }
+.helix { width: 100%; height: auto; display: block; }
+.helix__g { animation: helix-spin 9s linear infinite; transform-origin: 60px 60px; }
+.helix__rungs { opacity: .55; }
+
+.menu__title {
+  font-size: clamp(38px, 8.2vw, 82px);
+  font-weight: 800;
+  letter-spacing: -.035em;
+  line-height: .95;
+  background: linear-gradient(105deg, #ffffff 8%, var(--acc) 46%, var(--water) 92%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* Eigene Füllfarbe: der background-clip des Elterntitels erfasst Block-Kinder nicht. */
+.menu__title span {
+  display: block;
+  font-weight: 300;
+  letter-spacing: .16em;
+  font-size: .42em;
+  text-transform: uppercase;
+  color: var(--tx-dim);
+  -webkit-text-fill-color: var(--tx-dim);
+  margin-top: .12em;
+}
+.menu__tagline { color: var(--tx-dim); font-size: clamp(13px, 2.2vw, 17px); letter-spacing: .04em; }
+.menu__meta { color: var(--tx-mute); font-size: 12.5px; letter-spacing: .03em; }
+
+.menu__actions { display: grid; gap: 12px; justify-items: center; }
+.menu__row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+.menu__pillars {
+  display: grid;
+  gap: 8px;
+  max-width: 620px;
+  font-size: 13px;
+  color: var(--tx-mute);
+  text-align: left;
+}
+.menu__pillars li {
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: rgba(255,255,255,.022);
+  backdrop-filter: blur(6px);
+}
+.menu__pillars b { color: var(--tx-dim); }
+
+/* ───────────── Setup ───────────── */
+.setup {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px clamp(14px, 3vw, 34px) calc(28px + var(--safe-b));
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 1120px;
+  width: 100%;
+  margin: 0 auto;
+}
+.setup__head { display: flex; align-items: center; gap: 14px; }
+.setup__head h2 { font-size: clamp(20px, 3.4vw, 28px); font-weight: 700; letter-spacing: -.02em; }
+.setup__grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 16px; align-items: start; }
+.setup__foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+/* ───────────── Spielbildschirm ───────────── */
+#screen-game { display: none; }
+#screen-game.is-active { display: grid; grid-template-rows: auto 1fr auto; }
+
+.game-grid {
+  position: relative;          /* Anker für die eingeblendete Chronik */
+  display: grid;
+  grid-template-columns: minmax(250px, 300px) 1fr minmax(250px, 320px);
+  gap: 12px;
+  padding: 0 12px 10px;
+  min-height: 0;
+}
+
+.panel--side { min-height: 0; display: flex; flex-direction: column; }
+.panel__scroll { overflow-y: auto; padding: 12px 12px 16px; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+
+.arena-wrap {
+  position: relative;
+  min-height: 0;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #060c11;
+  box-shadow: var(--sh-3), inset 0 0 60px rgba(0,0,0,.6);
+}
+#arena { display: block; width: 100%; height: 100%; }
+.arena-overlay { position: absolute; inset: 0; pointer-events: none; }
+
+.panel-tabs { display: none; }
+
+/* ───────────── Abschluss ───────────── */
+.end {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px clamp(14px, 3vw, 34px) calc(24px + var(--safe-b));
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+}
+/* In der scrollenden Spalte darf kein Block gestaucht werden – sonst
+   überlagert überlaufender Inhalt die nachfolgenden Abschnitte. */
+.end > * { flex: 0 0 auto; }
+.end__head { text-align: center; display: grid; gap: 4px; }
+.end__eyebrow { color: var(--tx-mute); font-size: 12.5px; letter-spacing: .12em; text-transform: uppercase; }
+.end__title { font-size: clamp(26px, 5.4vw, 48px); font-weight: 800; letter-spacing: -.03em; }
+.end__sub { color: var(--tx-dim); font-size: 14px; }
+.end__body { min-height: 0; width: 100%; }
+.end__pane { display: none; animation: fade-up .34s var(--e-out) both; }
+.end__pane.is-active { display: block; }
+.end__lead { color: var(--tx-dim); font-size: 13.5px; margin-bottom: 12px; }
+.end__foot { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; padding-top: 6px; }
+.end__tabs { align-self: center; }

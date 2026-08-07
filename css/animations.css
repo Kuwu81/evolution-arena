@@ -1,0 +1,165 @@
+/* ============================================================
+   Evolution Arena — Keyframes & Effekte
+   ============================================================ */
+
+@keyframes drift-a {
+  0%, 100% { transform: translate3d(0,0,0) scale(1); }
+  50%      { transform: translate3d(6vmax, 4vmax, 0) scale(1.14); }
+}
+@keyframes drift-b {
+  0%, 100% { transform: translate3d(0,0,0) scale(1.06); }
+  50%      { transform: translate3d(-7vmax, 6vmax, 0) scale(.92); }
+}
+@keyframes drift-c {
+  0%, 100% { transform: translate3d(0,0,0) scale(1); }
+  50%      { transform: translate3d(-5vmax, -6vmax, 0) scale(1.2); }
+}
+
+@keyframes helix-spin {
+  from { transform: rotateY(0deg); }
+  to   { transform: rotateY(360deg); }
+}
+
+@keyframes screen-in {
+  from { opacity: 0; transform: translateY(14px) scale(.995); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes fade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(9px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes slide-in-l {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(.86); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(20px) scale(.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes card-deal {
+  from { opacity: 0; transform: translateY(26px) rotateX(-22deg) scale(.94); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes card-drop {
+  0%   { opacity: 0; transform: translateY(-14px) rotate(-3deg) scale(.95); }
+  60%  { transform: translateY(2px) rotate(.6deg) scale(1.01); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes log-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(14px) scale(.92); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes toast-out {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(-10px) scale(.96); }
+}
+
+@keyframes banner-in {
+  0%   { opacity: 0; transform: translateY(18px) scale(.9); filter: blur(6px); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+
+@keyframes chip-bump {
+  0%   { transform: scale(1); }
+  38%  { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--team) 55%, transparent); }
+  50%      { transform: scale(1.05); box-shadow: 0 0 0 14px transparent; }
+}
+
+@keyframes mut-pop {
+  0%   { opacity: 0; transform: scale(.3) rotate(-25deg); }
+  55%  { opacity: 1; transform: scale(1.25) rotate(6deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+/* Bildschirm-Erschütterung bei Katastrophen */
+@keyframes shake {
+  0%, 100% { transform: translate3d(0,0,0); }
+  10% { transform: translate3d(-9px, 4px, 0) rotate(-.4deg); }
+  20% { transform: translate3d(8px, -5px, 0) rotate(.35deg); }
+  30% { transform: translate3d(-7px, -3px, 0) rotate(-.3deg); }
+  40% { transform: translate3d(6px, 4px, 0) rotate(.25deg); }
+  55% { transform: translate3d(-4px, 2px, 0); }
+  70% { transform: translate3d(3px, -2px, 0); }
+  85% { transform: translate3d(-2px, 1px, 0); }
+}
+.is-shaking { animation: shake .62s var(--e-in-out) both; }
+
+/* Farbblitze über der Arena */
+.flash {
+  position: absolute; inset: 0; pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+.flash.is-on { animation: flash-run .7s var(--e-out) both; }
+@keyframes flash-run {
+  0%   { opacity: 0; }
+  12%  { opacity: .75; }
+  100% { opacity: 0; }
+}
+
+/* Zahlen-Ticker */
+@keyframes tick-up {
+  0%   { transform: translateY(0); }
+  40%  { transform: translateY(-4px); }
+  100% { transform: translateY(0); }
+}
+.is-ticking { animation: tick-up .38s var(--e-back); }
+
+/* Genpool-Balken Aufblitzen bei Änderung */
+@keyframes gene-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(255,255,255,.6); }
+  100% { box-shadow: 0 0 0 6px rgba(255,255,255,0); }
+}
+.gene-row.is-changed .gene-row__fill { animation: gene-flash .7s var(--e-out); }
+
+/* Schwebende Schadens-/Geburtszahlen (in der Arena-Overlay-Ebene) */
+.float-num {
+  position: absolute;
+  font-family: var(--ff-num);
+  font-size: 13px;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0,0,0,.9);
+  pointer-events: none;
+  animation: float-num 1.1s var(--e-out) both;
+}
+@keyframes float-num {
+  0%   { opacity: 0; transform: translate(-50%, 0) scale(.7); }
+  18%  { opacity: 1; transform: translate(-50%, -10px) scale(1.1); }
+  100% { opacity: 0; transform: translate(-50%, -42px) scale(.95); }
+}
+
+/* Ladepunkte */
+.dots::after {
+  content: "";
+  animation: dots 1.4s steps(4, end) infinite;
+}
+@keyframes dots {
+  0%   { content: ""; }
+  25%  { content: "."; }
+  50%  { content: ".."; }
+  75%  { content: "..."; }
+}

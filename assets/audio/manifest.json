@@ -1,0 +1,9 @@
+{
+  "//": "Optionale Sample-Dateien. Trage hier Klangname -> Dateiname ein, dann werden sie statt der synthetisierten Klänge verwendet. Leer = reine WebAudio-Synthese.",
+  "//verfuegbareKlaenge": [
+    "click", "hover", "cardDeal", "cardPick", "mutation", "food",
+    "drink", "death", "birth", "hunt", "catastrophe", "phase",
+    "victory", "extinct"
+  ],
+  "sounds": {}
+}

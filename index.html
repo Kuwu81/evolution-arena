@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Evolution Arena – Roguelike-Lernspiel zu Variabilität, Mutation, Selektion und Fortpflanzungserfolg.">
+<title>Evolution Arena</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AC%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/animations.css">
+<link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+
+<div class="ambient" aria-hidden="true">
+  <span class="ambient__blob ambient__blob--a"></span>
+  <span class="ambient__blob ambient__blob--b"></span>
+  <span class="ambient__blob ambient__blob--c"></span>
+  <span class="ambient__grain"></span>
+</div>
+
+<div id="app">
+
+  <!-- ═══════════════════════ STARTMENÜ ═══════════════════════ -->
+  <section id="screen-menu" class="screen is-active" data-screen="menu">
+    <div class="menu">
+      <div class="menu__hero">
+        <div class="menu__emblem" aria-hidden="true">
+          <svg viewBox="0 0 120 120" class="helix">
+            <g class="helix__g">
+              <path d="M35 8C35 30 85 46 85 68S35 106 35 112" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>
+              <path d="M85 8C85 30 35 46 35 68S85 106 85 112" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>
+              <g class="helix__rungs" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                <line x1="40" y1="22" x2="80" y2="22"/><line x1="52" y1="38" x2="68" y2="38"/>
+                <line x1="40" y1="54" x2="80" y2="54"/><line x1="52" y1="70" x2="68" y2="70"/>
+                <line x1="40" y1="86" x2="80" y2="86"/><line x1="52" y1="102" x2="68" y2="102"/>
+              </g>
+            </g>
+          </svg>
+        </div>
+        <h1 class="menu__title">Evolution<span>Arena</span></h1>
+        <p class="menu__tagline">Variabilität · Mutation · Selektion · Fortpflanzungserfolg</p>
+        <p class="menu__meta">Roguelike-Lernspiel · 2–6 Teams · 10–12 Runden · NRW-Kernlehrplan Biologie</p>
+      </div>
+
+      <div class="menu__actions">
+        <button class="btn btn--primary btn--xl" data-action="goto-setup">
+          <span class="btn__icon">▸</span> Spiel starten
+        </button>
+        <div class="menu__row">
+          <button class="btn btn--ghost" data-action="open-rules"><span class="btn__icon">📖</span> Regeln &amp; Biologie</button>
+          <button class="btn btn--ghost" data-action="open-glossary"><span class="btn__icon">🧬</span> Merkmals-Lexikon</button>
+        </div>
+      </div>
+
+      <ul class="menu__pillars">
+        <li><b>Kein Punktesammeln.</b> Wer am Ende die größte Population hat, gewinnt.</li>
+        <li><b>Anti-Lamarck.</b> Mutationen treffen ein zufälliges Individuum – niemand kann anpassen.</li>
+        <li><b>Reflexion.</b> Der Replay-Log rekonstruiert am Ende jedes „Warum X → Y?“.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ SETUP ═══════════════════════ -->
+  <section id="screen-setup" class="screen" data-screen="setup">
+    <div class="setup">
+      <header class="setup__head">
+        <button class="btn btn--icon" data-action="back-to-menu" title="Zurück">←</button>
+        <h2>Arena einrichten</h2>
+      </header>
+
+      <div class="setup__grid">
+        <div class="panel panel--pad">
+          <h3 class="panel__title">Teams <span class="panel__hint">Jedes Team ist eine Tierart</span></h3>
+          <div class="field field--row">
+            <label id="lbl-teamcount">Anzahl Teams</label>
+            <div class="stepper" role="group" aria-labelledby="lbl-teamcount">
+              <button class="stepper__btn" data-action="teams-dec" aria-label="Weniger Teams">−</button>
+              <output class="stepper__val" id="out-teamcount">3</output>
+              <button class="stepper__btn" data-action="teams-inc" aria-label="Mehr Teams">+</button>
+            </div>
+          </div>
+          <div id="team-rows" class="team-rows"></div>
+          <button class="btn btn--ghost btn--sm" data-action="reroll-names"><span class="btn__icon">🎲</span> Artnamen neu würfeln</button>
+        </div>
+
+        <div class="panel panel--pad">
+          <h3 class="panel__title">Partie</h3>
+
+          <div class="field">
+            <label id="lbl-rounds">Rundenanzahl</label>
+            <div class="seg" id="seg-rounds" role="radiogroup" aria-labelledby="lbl-rounds">
+              <button class="seg__btn" data-value="8">8</button>
+              <button class="seg__btn is-active" data-value="10">10</button>
+              <button class="seg__btn" data-value="12">12</button>
+            </div>
+            <p class="field__hint">10 Runden ≈ 45 Minuten Unterrichtszeit.</p>
+          </div>
+
+          <div class="field">
+            <label id="lbl-pack">Karten-Pack</label>
+            <div class="seg seg--stack" id="seg-pack" role="radiogroup" aria-labelledby="lbl-pack">
+              <button class="seg__btn is-active" data-value="basis">
+                <b>Basis-Pack</b><small>Sek I · UV 8.4 „Mechanismen der Evolution“</small>
+              </button>
+              <button class="seg__btn" data-value="advanced">
+                <b>Advanced-Pack</b><small>Sek II · IF 6 · + Gendrift, Isolation, Artbildung, Konvergenz</small>
+              </button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label id="lbl-startpop">Startpopulation je Team</label>
+            <div class="seg" id="seg-startpop" role="radiogroup" aria-labelledby="lbl-startpop">
+              <button class="seg__btn" data-value="4">4</button>
+              <button class="seg__btn is-active" data-value="6">6</button>
+              <button class="seg__btn" data-value="8">8</button>
+            </div>
+            <p class="field__hint">Das Wasserloch bleibt bewusst zu klein – Überproduktion ist beabsichtigt.</p>
+          </div>
+
+          <div class="field">
+            <label for="inp-seed">Seed <small>(optional – gleicher Seed = gleicher Spielverlauf)</small></label>
+            <input class="input" id="inp-seed" type="text" inputmode="numeric" placeholder="z. B. 1848" autocomplete="off">
+          </div>
+        </div>
+      </div>
+
+      <div class="setup__foot">
+        <button class="btn btn--ghost" data-action="open-rules"><span class="btn__icon">📖</span> Regeln</button>
+        <button class="btn btn--primary btn--xl" data-action="start-game">Arena betreten ▸</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ SPIEL ═══════════════════════ -->
+  <section id="screen-game" class="screen" data-screen="game">
+
+    <header class="hud">
+      <div class="hud__left">
+        <button class="btn btn--icon" data-action="pause" title="Pause (Esc)">⏸</button>
+        <div class="hud__round">
+          <span class="hud__round-label">Runde</span>
+          <span class="hud__round-val"><b id="out-round">1</b><i>/</i><span id="out-rounds">10</span></span>
+        </div>
+      </div>
+
+      <ol class="phases" id="phases">
+        <li class="phase-chip" data-phase="0"><span class="phase-chip__i">🎴</span><span class="phase-chip__t">Ereignis</span></li>
+        <li class="phase-chip" data-phase="1"><span class="phase-chip__i">🎲</span><span class="phase-chip__t">Draft</span></li>
+        <li class="phase-chip" data-phase="2"><span class="phase-chip__i">💧</span><span class="phase-chip__t">Wasserloch</span></li>
+        <li class="phase-chip" data-phase="3"><span class="phase-chip__i">☠️</span><span class="phase-chip__t">Selektion</span></li>
+        <li class="phase-chip" data-phase="4"><span class="phase-chip__i">🥚</span><span class="phase-chip__t">Vermehrung</span></li>
+      </ol>
+
+      <div class="hud__right">
+        <div class="env-chip" id="chip-temp" title="Umgebungstemperatur">
+          <span class="env-chip__i">🌡️</span><span class="env-chip__v" id="out-temp">20°</span>
+        </div>
+        <div class="env-chip" id="chip-food" title="Nahrungsangebot am Wasserloch">
+          <span class="env-chip__i">🍃</span><span class="env-chip__v" id="out-food">100%</span>
+        </div>
+        <div class="env-chip" id="chip-pred" title="Räuberdruck (emergent)">
+          <span class="env-chip__i">☠️</span><span class="env-chip__v" id="out-pred">0</span>
+        </div>
+        <button class="btn btn--icon" data-action="toggle-sound" title="Sound an/aus" id="btn-sound">🔊</button>
+      </div>
+    </header>
+
+    <main class="game-grid" data-view="arena">
+      <aside class="panel panel--side" id="panel-left" data-tab="teams">
+        <div class="panel__scroll">
+          <h3 class="panel__title">Arten <span class="panel__hint">Population</span></h3>
+          <div id="team-list" class="team-list"></div>
+
+          <h3 class="panel__title panel__title--sep">
+            Genpool
+            <select class="mini-select" id="sel-genepool-team" aria-label="Team für Genpool wählen"></select>
+          </h3>
+          <div id="genepool" class="genepool"></div>
+
+          <h3 class="panel__title panel__title--sep">Aktive Kombis</h3>
+          <div id="combo-list" class="combo-list"></div>
+        </div>
+      </aside>
+
+      <div class="arena-wrap" id="arena-wrap">
+        <canvas id="arena" aria-label="Wasserloch-Arena"></canvas>
+        <div class="arena-overlay" id="arena-overlay"></div>
+        <div class="arena-banner" id="arena-banner" aria-live="polite"></div>
+        <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+      </div>
+
+      <aside class="panel panel--side" id="panel-right" data-tab="log">
+        <div class="panel__scroll">
+          <h3 class="panel__title">Ereigniskarte</h3>
+          <div id="event-slot" class="event-slot"></div>
+
+          <h3 class="panel__title panel__title--sep">
+            Chronik
+            <button class="btn btn--icon btn--xs" data-action="clear-filter" title="Filter zurücksetzen">⟳</button>
+          </h3>
+          <div class="log" id="log"></div>
+        </div>
+      </aside>
+    </main>
+
+    <nav class="panel-tabs" id="panel-tabs" role="tablist">
+      <button class="panel-tabs__btn" data-target="teams" role="tab">🧬 Arten</button>
+      <button class="panel-tabs__btn is-active" data-target="arena" role="tab">💧 Arena</button>
+      <button class="panel-tabs__btn" data-target="log" role="tab">📜 Chronik</button>
+    </nav>
+
+    <footer class="actionbar">
+      <div class="actionbar__info">
+        <span class="actionbar__phase" id="out-phase">Ereigniskarte</span>
+        <span class="actionbar__hint" id="out-hint">Zu Rundenbeginn wird die Umwelt neu gewürfelt.</span>
+      </div>
+      <div class="actionbar__ctrl">
+        <div class="seg seg--tiny" id="seg-speed" role="radiogroup" aria-label="Geschwindigkeit">
+          <button class="seg__btn is-active" data-value="1">1×</button>
+          <button class="seg__btn" data-value="2">2×</button>
+          <button class="seg__btn" data-value="4">4×</button>
+        </div>
+        <button class="btn btn--ghost btn--sm" data-action="toggle-auto" id="btn-auto">▶ Auto</button>
+        <button class="btn btn--primary btn--wide" data-action="advance" id="btn-advance">Weiter ▸</button>
+      </div>
+    </footer>
+  </section>
+
+  <!-- ═══════════════════════ ABSCHLUSS ═══════════════════════ -->
+  <section id="screen-end" class="screen" data-screen="end">
+    <div class="end">
+      <header class="end__head">
+        <p class="end__eyebrow">Nach <span id="out-end-rounds">10</span> Runden</p>
+        <h2 class="end__title" id="out-winner">—</h2>
+        <p class="end__sub">Die größte Population gewinnt – gebaut hat sie niemand.</p>
+      </header>
+
+      <div class="end__podium" id="end-podium"></div>
+
+      <div class="end__tabs seg" id="end-tabs" role="tablist">
+        <button class="seg__btn is-active" data-value="reflect"><span class="btn__icon">🔍</span> Reflexion</button>
+        <button class="seg__btn" data-value="charts"><span class="btn__icon">📈</span> Verlauf</button>
+        <button class="seg__btn" data-value="log"><span class="btn__icon">📜</span> Replay-Log</button>
+      </div>
+
+      <div class="end__body">
+        <div class="end__pane is-active" data-pane="reflect">
+          <p class="end__lead">Warum X → Y? Die Auswertung rekonstruiert die Ursachen aus den Runden­daten.</p>
+          <div id="reflect-list" class="reflect-list"></div>
+        </div>
+        <div class="end__pane" data-pane="charts">
+          <div class="chart-box">
+            <h4>Populationsentwicklung</h4>
+            <canvas id="chart-pop"></canvas>
+            <div class="chart-legend" id="legend-pop"></div>
+          </div>
+          <div class="chart-box">
+            <h4>Genpool-Verschiebung
+              <select class="mini-select" id="sel-chart-team" aria-label="Team für Genpool-Verlauf"></select>
+            </h4>
+            <canvas id="chart-genes"></canvas>
+            <div class="chart-legend" id="legend-genes"></div>
+          </div>
+        </div>
+        <div class="end__pane" data-pane="log">
+          <div class="log log--full" id="log-full"></div>
+        </div>
+      </div>
+
+      <footer class="end__foot">
+        <button class="btn btn--ghost" data-action="export-log"><span class="btn__icon">⬇</span> Log exportieren</button>
+        <button class="btn btn--ghost" data-action="back-to-menu">Hauptmenü</button>
+        <button class="btn btn--primary" data-action="rematch">Revanche ▸</button>
+      </footer>
+    </div>
+  </section>
+
+  <div id="overlay-root"></div>
+</div>
+
+<noscript><p style="padding:2rem;text-align:center">Evolution Arena benötigt JavaScript.</p></noscript>
+
+<script src="js/core/util.js"></script>
+<script src="js/core/audio.js"></script>
+<script src="js/data/names.js"></script>
+<script src="js/data/traits.js"></script>
+<script src="js/data/events.js"></script>
+<script src="js/game/genetics.js"></script>
+<script src="js/game/state.js"></script>
+<script src="js/game/phases.js"></script>
+<script src="js/game/ai.js"></script>
+<script src="js/game/analysis.js"></script>
+<script src="js/render/arena.js"></script>
+<script src="js/ui/charts.js"></script>
+<script src="js/ui/hud.js"></script>
+<script src="js/ui/draft.js"></script>
+<script src="js/ui/modals.js"></script>
+<script src="js/ui/endscreen.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

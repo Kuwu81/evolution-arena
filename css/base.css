@@ -1,0 +1,170 @@
+/* ============================================================
+   Evolution Arena — Design-Tokens, Reset, Typografie
+   ============================================================ */
+
+:root {
+  /* Flächen */
+  --ink-950: #05090d;
+  --ink-900: #080e14;
+  --ink-850: #0b131b;
+  --ink-800: #0f1923;
+  --ink-750: #14212d;
+  --ink-700: #1b2c3b;
+  --ink-600: #26404f;
+
+  --line: rgba(150, 195, 220, .13);
+  --line-strong: rgba(150, 195, 220, .26);
+
+  /* Text */
+  --tx: #e6f0f6;
+  --tx-dim: #a3b8c7;
+  --tx-mute: #6f8697;
+
+  /* Akzente */
+  --acc: #4fe0a6;          /* Leben / Bestätigung */
+  --acc-deep: #1b8f68;
+  --water: #49b8e8;        /* Wasserloch */
+  --sand: #e3c489;         /* Savanne */
+  --warn: #f7b84b;
+  --danger: #ff6a5a;
+  --violet: #b491ff;
+
+  /* Umwelt-Verläufe */
+  --cold: #7cc8ff;
+  --hot: #ff9a4d;
+
+  /* Seltenheiten */
+  --r-common: #9fb4c4;
+  --r-uncommon: #4ea8ff;
+  --r-rare: #c084fc;
+
+  /* Radien & Schatten */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+
+  --sh-1: 0 1px 2px rgba(0,0,0,.4);
+  --sh-2: 0 6px 22px -8px rgba(0,0,0,.65);
+  --sh-3: 0 18px 50px -18px rgba(0,0,0,.8);
+  --glow: 0 0 0 1px rgba(79,224,166,.35), 0 0 26px -6px rgba(79,224,166,.45);
+
+  /* Typo */
+  --ff: "Inter", "SF Pro Text", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ff-num: "SF Mono", ui-monospace, "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
+
+  /* Motion */
+  --e-out: cubic-bezier(.16,1,.3,1);
+  --e-in-out: cubic-bezier(.65,0,.35,1);
+  --e-back: cubic-bezier(.34,1.56,.64,1);
+  --t-fast: .14s;
+  --t-mid: .28s;
+  --t-slow: .5s;
+
+  /* Layout */
+  --hud-h: 60px;
+  --bar-h: 68px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: var(--ff);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--tx);
+  background: var(--ink-950);
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  touch-action: manipulation;
+}
+
+h1, h2, h3, h4, p, ul, ol, figure { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button { background: none; border: 0; cursor: pointer; }
+
+:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+:focus:not(:focus-visible) { outline: none; }
+
+b, strong { font-weight: 650; }
+small { font-size: .82em; }
+
+::selection { background: rgba(79,224,166,.3); }
+
+/* Scrollbars */
+.panel__scroll, .log, .end__body, .setup {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-600) transparent;
+}
+.panel__scroll::-webkit-scrollbar,
+.log::-webkit-scrollbar,
+.end__body::-webkit-scrollbar,
+.setup::-webkit-scrollbar { width: 9px; height: 9px; }
+.panel__scroll::-webkit-scrollbar-thumb,
+.log::-webkit-scrollbar-thumb,
+.end__body::-webkit-scrollbar-thumb,
+.setup::-webkit-scrollbar-thumb {
+  background: var(--ink-700);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.panel__scroll::-webkit-scrollbar-thumb:hover,
+.log::-webkit-scrollbar-thumb:hover { background: var(--ink-600); background-clip: padding-box; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ---------- Hintergrund-Ambiente ---------- */
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% -10%, #0f2233 0%, #070d13 55%, #04080c 100%);
+}
+.ambient__blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: .3;
+  will-change: transform;
+}
+.ambient__blob--a { width: 46vmax; height: 46vmax; left: -12vmax; top: -14vmax; background: #125f7a; animation: drift-a 34s var(--e-in-out) infinite; }
+.ambient__blob--b { width: 40vmax; height: 40vmax; right: -14vmax; top: 18vmax; background: #1d6b4e; animation: drift-b 42s var(--e-in-out) infinite; }
+.ambient__blob--c { width: 34vmax; height: 34vmax; left: 32vmax; bottom: -18vmax; background: #6b4a1d; opacity: .2; animation: drift-c 50s var(--e-in-out) infinite; }
+.ambient__grain {
+  position: absolute; inset: 0;
+  opacity: .16;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}

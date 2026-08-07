@@ -1,0 +1,107 @@
+/* ============================================================
+   Evolution Arena — Responsive Overrides
+   Bewusst als LETZTES Stylesheet geladen: Media Queries erhöhen die
+   Spezifität nicht, daher entscheidet die Quellreihenfolge.
+   ============================================================ */
+
+@media (max-width: 820px) {
+  .setup__grid { grid-template-columns: 1fr; }
+}
+
+/* ─── Tablet & schmaler Desktop: Chronik wird zur Einblendung ─── */
+@media (max-width: 1180px) {
+  .game-grid { grid-template-columns: minmax(230px, 270px) 1fr; }
+
+  #panel-right { display: none; }
+  .game-grid[data-view="log"] #panel-right {
+    display: flex;
+    position: absolute;
+    z-index: 40;
+    top: 0; right: 0; bottom: 10px;
+    width: min(340px, 84vw);
+    box-shadow: var(--sh-3);
+  }
+
+  .panel-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding: 0 12px 8px;
+  }
+  .panel-tabs__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 4px;
+    border-radius: var(--r-sm);
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.03);
+    color: var(--tx-mute);
+    font-size: 12.5px;
+    font-weight: 600;
+    transition: color var(--t-fast), background var(--t-fast), border-color var(--t-fast);
+  }
+  .panel-tabs__btn:hover { color: var(--tx-dim); }
+  .panel-tabs__btn.is-active {
+    color: var(--tx);
+    background: rgba(79,224,166,.12);
+    border-color: rgba(79,224,166,.4);
+  }
+}
+
+/* ─── Mobil: eine Spalte, Panels über die Tabs umschalten ─── */
+@media (max-width: 860px) {
+  :root { --hud-h: 54px; --bar-h: 62px; }
+
+  .game-grid {
+    grid-template-columns: 1fr;
+    padding: 0 8px 6px;
+  }
+  .panel-tabs { padding: 0 8px 6px; }
+
+  #panel-left { display: none; }
+  .game-grid[data-view="teams"] #panel-left { display: flex; }
+  .game-grid[data-view="log"] #panel-right {
+    display: flex;
+    position: static;
+    width: auto;
+    inset: auto;
+    box-shadow: var(--sh-2);
+  }
+  .game-grid[data-view="teams"] .arena-wrap,
+  .game-grid[data-view="log"] .arena-wrap { display: none; }
+
+  .hud__round-label { display: none; }
+  .phases { display: none; }
+
+  /* Zweizeilig: eine feste Höhe würde die Steuerung abschneiden. */
+  .actionbar {
+    height: auto;
+    min-height: var(--bar-h);
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px calc(10px + var(--safe-b));
+  }
+  .actionbar__info { flex: 1 1 100%; order: -1; }
+  .actionbar__ctrl { flex: 1 1 auto; justify-content: flex-end; }
+  .actionbar__hint { white-space: normal; }
+
+  .toast-stack { bottom: 10px; max-width: 94%; }
+  .toast { font-size: 12px; padding: 7px 12px; }
+
+  .log { max-height: none; }
+  .log--full { max-height: 60vh; }
+  .chart-box canvas { height: 200px; }
+}
+
+@media (max-width: 560px) {
+  .env-chip__i { font-size: 12px; }
+  .seg--tiny { display: none; }
+  .modal__head { padding: 14px 16px 12px; }
+  .modal__body { padding: 14px 16px; }
+  .modal__foot { padding: 12px 16px calc(16px + var(--safe-b)); }
+  .podium-row { grid-template-columns: 22px auto 1fr auto; gap: 8px; padding: 10px; }
+  .podium-row__pop { font-size: 20px; }
+  .end__foot .btn { flex: 1 1 auto; }
+}
