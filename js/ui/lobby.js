@@ -306,13 +306,17 @@
 
       /* ---------- Start ---------- */
       const hint = tooFew
-        ? 'Es fehlt mindestens eine weitere Art – wartet auf Mitspielende oder stellt eine KI-Art dazu.'
+        ? (isHost
+            ? 'Eine Partie braucht mindestens zwei Arten. Gib den Code weiter und warte auf Mitspielende – oder stelle über „Zusätzliche KI-Arten“ eine Computerart dazu.'
+            : 'Eine Partie braucht mindestens zwei Arten. Der Gastgeber wartet noch auf Mitspielende.')
         : (tooMany ? 'Zu viele Arten: höchstens ' + EA.net.MAX_PLAYERS + '.' : null);
 
       const foot = el('div', { class: 'lobby__foot' }, [
-        hint ? el('p', { class: 'field__hint' }, hint) : el('p', { class: 'field__hint' },
-          isHost ? 'Du gibst während der Partie die Phasen frei – alle sehen dieselbe Runde.'
-                 : 'Sobald der Gastgeber startet, geht es für alle gleichzeitig los.'),
+        hint
+          ? el('p', { class: 'lobby__blocked' }, [el('span', {}, '⚠️'), hint])
+          : el('p', { class: 'field__hint' },
+              isHost ? 'Du gibst während der Partie die Phasen frei – alle sehen dieselbe Runde.'
+                     : 'Sobald der Gastgeber startet, geht es für alle gleichzeitig los.'),
         isHost
           ? el('button', {
               class: 'btn btn--primary btn--xl', disabled: tooFew || tooMany,
