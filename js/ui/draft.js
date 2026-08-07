@@ -192,33 +192,145 @@
   }
 
   /**
-   * Führt den Draft eines Teams durch (Mensch oder KI) und liefert das Ergebnis.
-   * clock wird gebraucht, damit KI-Pausen Pause und Geschwindigkeit respektieren.
+   * Wartefenster, während die anderen Teams online noch wählen.
+   * Der Gastgeber kann für getrennte Mitspielende übernehmen – sonst
+   * würde eine geschlossene Registerkarte die ganze Runde blockieren.
    */
-  async function run(game, team, opts) {
-    const o = opts || {};
-    const offer = EA.phases.makeOffer(game, team);
+  function waitForOthers(room, game, pendingTeams, offers) {
+    const list = el('div', { class: 'wait-list' });
+    const note = el('p', { class: 'field__hint' });
+    let takeoverBtn = null;
 
-    if (team.controller === 'ai') {
+    const render = missingIds => {
+      list.innerHTML = '';
+      for (const team of pendingTeams) {
+        const done = missingIds.indexOf(team.id) === -1;
+        list.appendChild(el('div', { class: 'wait-list__row' + (done ? ' is-done' : '') }, [
+          el('span', { class: 'swatch', style: { background: team.color } }, team.letter),
+          el('span', { class: 'wait-list__name' }, team.name),
+          done
+            ? el('span', { class: 'tagpill tagpill--good' }, '✓ gewählt')
+            : el('span', { class: 'wait-list__pending' }, [el('span', { class: 'spinner' }), 'wählt …'])
+        ]));
+      }
+      note.textContent = missingIds.length === 1
+        ? 'Noch ein Team entscheidet.'
+        : 'Noch ' + missingIds.length + ' Teams entscheiden.';
+      if (takeoverBtn) {
+        const offline = missingIds.filter(id => isOffline(room, game, id));
+        takeoverBtn.disabled = missingIds.length === 0;
+        takeoverBtn.hidden = !missingIds.length;
+        takeoverBtn.querySelector('.wait-take__d').textContent = offline.length
+          ? offline.length + ' der wartenden Teams sind getrennt.'
+          : 'Alle sind verbunden – noch kurz Geduld.';
+      }
+    };
+
+    const foot = [];
+    if (room.isHost) {
+      takeoverBtn = el('button', { class: 'btn btn--sm', onclick: () => forceAll() }, [
+        el('span', {}, '⏭ Wartende überspringen'),
+        el('span', { class: 'wait-take__d' }, '')
+      ]);
+      takeoverBtn.classList.add('wait-take');
+      foot.push(takeoverBtn);
+    }
+
+    /** Ersatzentscheidung ohne Zufall – jedes Gerät käme auf dasselbe Ergebnis. */
+    function forceAll() {
+      for (const team of pendingTeams) {
+        if (room.hasDraft(game.round, team.id)) continue;
+        const offer = offers.get(team);
+        room.publishDraft(game.round, team.id, offer[0].id, 'mutation', true);
+      }
+    }
+
+    // Getrennte Mitspielende nach einer Schonfrist automatisch übernehmen.
+    let autoTimer = 0;
+    if (room.isHost) {
+      autoTimer = setInterval(() => {
+        // Ist der Raum zu, gibt es nichts mehr zu übernehmen.
+        if (room.status !== 'open') { clearInterval(autoTimer); return; }
+        for (const team of pendingTeams) {
+          if (room.hasDraft(game.round, team.id)) continue;
+          if (!isOffline(room, game, team.id)) continue;
+          const offer = offers.get(team);
+          room.publishDraft(game.round, team.id, offer[0].id, 'mutation', true);
+        }
+      }, 4000);
+    }
+
+    const m = EA.modal.open({
+      title: 'Gleichzeitiger Draft',
+      sub: 'Alle Arten wählen zur selben Zeit – niemand sieht die Karten der anderen.',
+      closable: false,
+      className: 'modal--slim',
+      body: [list, note],
+      foot
+    });
+
+    const ids = pendingTeams.map(t => t.id);
+    return room.awaitDrafts(game.round, ids, render).then(() => {
+      clearInterval(autoTimer);
+      m.close();
+    });
+  }
+
+  function isOffline(room, game, teamId) {
+    const team = game.teams.find(t => t.id === teamId);
+    if (!team || !team.playerId) return false;
+    const p = room.players.find(x => x.id === team.playerId);
+    return !p || !p.online;
+  }
+
+  /**
+   * Führt den Draft eines Teams durch und liefert das Ergebnis.
+   *
+   * Das Angebot wird übergeben, nicht hier gezogen: Im Onlinemodus müssen
+   * alle Angebote einer Runde vorab und in Teamreihenfolge aus game.rng
+   * kommen, sonst laufen die Geräte auseinander.
+   *
+   * opts.choice  vorentschieden ({ trait, mode }) – aus dem Netz oder Verlauf
+   * opts.handoff Übergabebildschirm (Hotseat mit mehreren Menschen)
+   * opts.reveal  Auflösung zeigen, obwohl die Wahl schon feststeht (eigenes
+   *              Team online: der Dialog erklärt „Mutation ist ungerichtet“)
+   * opts.clock   für Pausen, die Pause und Geschwindigkeit respektieren
+   */
+  async function run(game, team, offer, opts) {
+    const o = opts || {};
+    let choice = o.choice || null;
+    // Fremde Züge nur kurz einblenden – die eigene Wahl wird aufgelöst.
+    let narrate = !!choice && !o.reveal;
+
+    if (!choice && team.controller === 'ai') {
       const decision = EA.ai.decide(game, team, offer);
-      const result = EA.phases.applyDraft(game, team, decision.trait, decision.mode);
+      choice = { trait: decision.trait, mode: decision.mode };
+      narrate = true;
+    }
+
+    if (!choice) {
+      if (o.handoff) await handoff(team);
+      choice = await chooseCard(game, team, offer);
+      narrate = false;
+    }
+
+    const result = EA.phases.applyDraft(game, team, choice.trait, choice.mode);
+    if (result.target) EA.arena.fxMutation(result.target);
+
+    if (narrate) {
       EA.audio.play(result.mode === 'mutation' ? 'mutation' : 'food');
       EA.hud.toast(
-        '<b style="color:' + team.color + '">' + team.name + '</b> draftet ' + decision.trait.icon + ' ' +
-        decision.trait.name + ' als ' + (result.mode === 'mutation' ? 'Mutation' : 'Nahrung'),
+        '<b style="color:' + team.color + '">' + team.name + '</b> draftet ' + choice.trait.icon + ' ' +
+        choice.trait.name + ' als ' + (result.mode === 'mutation' ? 'Mutation' : 'Nahrung') +
+        (choice.auto ? ' <i>(automatisch)</i>' : ''),
         result.mode === 'mutation' ? 'info' : 'good', 2000);
-      if (result.target) EA.arena.fxMutation(result.target);
-      if (o.clock) await o.clock.wait(760);
+      if (o.clock) await o.clock.wait(o.brisk ? 480 : 760);
       return result;
     }
 
-    if (o.handoff) await handoff(team);
-    const choice = await chooseCard(game, team, offer);
-    const result = EA.phases.applyDraft(game, team, choice.trait, choice.mode);
-    if (result.target) EA.arena.fxMutation(result.target);
     await reveal(game, team, result);
     return result;
   }
 
-  EA.draft = { run };
+  EA.draft = { run, chooseCard, reveal, handoff, waitForOthers };
 })(window);

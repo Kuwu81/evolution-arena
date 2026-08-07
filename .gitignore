@@ -1,0 +1,5 @@
+# macOS
+.DS_Store
+
+# Lokale Claude-Code-Einstellungen (devserver.py und launch.json bleiben versioniert)
+.claude/settings.local.json
